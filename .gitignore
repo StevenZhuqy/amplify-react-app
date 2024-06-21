@@ -22,6 +22,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+*.jpg
+*.png
 notes.md
 
 #amplify-do-not-edit-begin
