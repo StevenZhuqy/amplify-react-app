@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./App.css";
 import "@aws-amplify/ui-react/styles.css";
 import { generateClient } from 'aws-amplify/api';
@@ -20,6 +21,7 @@ import {
 } from "./graphql/mutations";
 
 const client = generateClient();
+const apiUrl = "https://zpdrmj2fi2.execute-api.us-east-1.amazonaws.com/";
 
 const App = ({ signOut }) => {
   const [notes, setNotes] = useState([]);
@@ -29,8 +31,11 @@ const App = ({ signOut }) => {
   }, []);
 
   async function fetchNotes() {
-    const apiData = await client.graphql({ query: listNotes });
-    const notesFromAPI = apiData.data.listNotes.items;
+    // const apiData = await client.graphql({ query: listNotes });
+    // const notesFromAPI = apiData.data.listNotes.items;
+    
+    const response = await axios.get(`${apiUrl}/read`);
+    const notesFromAPI = response.data;
     await Promise.all(
       notesFromAPI.map(async (note) => {
         if (note.image) {
@@ -48,15 +53,17 @@ const App = ({ signOut }) => {
     const form = new FormData(event.target);
     const image = form.get("image");
     const data = {
+      id: Date.now().toString(),
       name: form.get("name"),
       description: form.get("description"),
       image: image.name,
     };
     if (!!data.image) await uploadData({key: data.name, data: image}).result;
-    await client.graphql({
-      query: createNoteMutation,
-      variables: { input: data },
-    });
+    // await client.graphql({
+    //   query: createNoteMutation,
+    //   variables: { input: data },
+    // });
+    await axios.post(`${apiUrl}/create`, data);
     fetchNotes();
     event.target.reset();
   }
@@ -65,9 +72,12 @@ const App = ({ signOut }) => {
     const newNotes = notes.filter((note) => note.id !== id);
     setNotes(newNotes);
     await remove({key: name});
-    await client.graphql({
-      query: deleteNoteMutation,
-      variables: { input: { id } },
+    // await client.graphql({
+    //   query: deleteNoteMutation,
+    //   variables: { input: { id } },
+    // });
+    await axios.delete(`${apiUrl}/delete`, {
+      data: { id },
     });
   }
 
