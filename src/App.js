@@ -4,6 +4,7 @@ import "./App.css";
 import "@aws-amplify/ui-react/styles.css";
 import { generateClient } from 'aws-amplify/api';
 import { uploadData, getUrl, remove } from 'aws-amplify/storage'
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
 import {
   withAuthenticator,
   Button,
@@ -34,7 +35,15 @@ const App = ({ signOut }) => {
     // const apiData = await client.graphql({ query: listNotes });
     // const notesFromAPI = apiData.data.listNotes.items;
     
-    const response = await axios.get(`${apiUrl}/read`);
+    const { username } = await getCurrentUser();
+    console.log(username);
+    const { tokens } = await fetchAuthSession();
+    const response = await axios.get(`${apiUrl}/read`, {
+      params: {
+        userId: username,
+        isAdmin: tokens.accessToken.payload["cognito:groups"] && tokens.accessToken.payload["cognito:groups"].includes("Admins")
+      }
+    });
     const notesFromAPI = response.data;
     await Promise.all(
       notesFromAPI.map(async (note) => {
@@ -52,8 +61,10 @@ const App = ({ signOut }) => {
     event.preventDefault();
     const form = new FormData(event.target);
     const image = form.get("image");
+    const { username } = await getCurrentUser();
     const data = {
       id: Date.now().toString(),
+      userId: username,
       name: form.get("name"),
       description: form.get("description"),
       image: image.name,
@@ -69,16 +80,28 @@ const App = ({ signOut }) => {
   }
 
   async function deleteNote({ id, name }) {
-    const newNotes = notes.filter((note) => note.id !== id);
-    setNotes(newNotes);
-    await remove({key: name});
+    const { username } = await getCurrentUser();
+    const { tokens } = await fetchAuthSession();
+
+    const response = await axios.delete(`${apiUrl}/delete`, {
+      data: {
+        id: id,
+        userId: username,
+        isAdmin: tokens.accessToken.payload["cognito:groups"] && tokens.accessToken.payload["cognito:groups"].includes("Admins")
+      },
+    });
+
+    if (response.status === 200) {
+      const newNotes = notes.filter((note) => note.id !== id);
+      setNotes(newNotes);
+      await remove({key: name});
+    } else {
+      console.error("Error deleting note:", response.data);
+    }
     // await client.graphql({
     //   query: deleteNoteMutation,
     //   variables: { input: { id } },
     // });
-    await axios.delete(`${apiUrl}/delete`, {
-      data: { id },
-    });
   }
 
   return (

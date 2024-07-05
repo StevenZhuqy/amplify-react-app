@@ -25,23 +25,27 @@ export default function NoteCreateForm(props) {
   const initialValues = {
     name: "",
     description: "",
+    userId: "",
     image: "",
   };
   const [name, setName] = React.useState(initialValues.name);
   const [description, setDescription] = React.useState(
     initialValues.description
   );
+  const [userId, setUserId] = React.useState(initialValues.userId);
   const [image, setImage] = React.useState(initialValues.image);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setName(initialValues.name);
     setDescription(initialValues.description);
+    setUserId(initialValues.userId);
     setImage(initialValues.image);
     setErrors({});
   };
   const validations = {
     name: [{ type: "Required" }],
     description: [],
+    userId: [],
     image: [],
   };
   const runValidationTasks = async (
@@ -72,6 +76,7 @@ export default function NoteCreateForm(props) {
         let modelFields = {
           name,
           description,
+          userId,
           image,
         };
         const validationResponses = await Promise.all(
@@ -137,6 +142,7 @@ export default function NoteCreateForm(props) {
             const modelFields = {
               name: value,
               description,
+              userId,
               image,
             };
             const result = onChange(modelFields);
@@ -163,6 +169,7 @@ export default function NoteCreateForm(props) {
             const modelFields = {
               name,
               description: value,
+              userId,
               image,
             };
             const result = onChange(modelFields);
@@ -179,6 +186,33 @@ export default function NoteCreateForm(props) {
         {...getOverrideProps(overrides, "description")}
       ></TextField>
       <TextField
+        label="User id"
+        isRequired={false}
+        isReadOnly={false}
+        value={userId}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              name,
+              description,
+              userId: value,
+              image,
+            };
+            const result = onChange(modelFields);
+            value = result?.userId ?? value;
+          }
+          if (errors.userId?.hasError) {
+            runValidationTasks("userId", value);
+          }
+          setUserId(value);
+        }}
+        onBlur={() => runValidationTasks("userId", userId)}
+        errorMessage={errors.userId?.errorMessage}
+        hasError={errors.userId?.hasError}
+        {...getOverrideProps(overrides, "userId")}
+      ></TextField>
+      <TextField
         label="Image"
         isRequired={false}
         isReadOnly={false}
@@ -189,6 +223,7 @@ export default function NoteCreateForm(props) {
             const modelFields = {
               name,
               description,
+              userId,
               image: value,
             };
             const result = onChange(modelFields);

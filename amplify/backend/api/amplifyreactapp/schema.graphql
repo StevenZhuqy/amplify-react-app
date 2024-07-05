@@ -6,5 +6,6 @@ type Note @model @auth(rules: [ { allow: public } ] ){
   id: ID!
   name: String!
   description: String
+  userId: String
   image: String
 }
