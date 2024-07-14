@@ -20,9 +20,11 @@ import {
   createNote as createNoteMutation,
   deleteNote as deleteNoteMutation,
 } from "./graphql/mutations";
+const jwt = require('jsonwebtoken');
 
 const client = generateClient();
 const apiUrl = "https://zpdrmj2fi2.execute-api.us-east-1.amazonaws.com/";
+const secret = 'shhhh';
 
 const App = ({ signOut }) => {
   const [notes, setNotes] = useState([]);
@@ -36,13 +38,18 @@ const App = ({ signOut }) => {
     // const notesFromAPI = apiData.data.listNotes.items;
     
     const { username } = await getCurrentUser();
-    console.log(username);
     const { tokens } = await fetchAuthSession();
-    const response = await axios.get(`${apiUrl}/read`, {
-      params: {
+
+    const payload = {
         userId: username,
-        isAdmin: tokens.accessToken.payload["cognito:groups"] && tokens.accessToken.payload["cognito:groups"].includes("Admins")
-      }
+        isAdmin: tokens.accessToken.payload["cognito:groups"] && tokens.accessToken.payload["cognito:groups"].includes("Admins") || false
+    };
+    const token = jwt.sign(payload, secret);
+    
+    const response = await axios.get(`${apiUrl}/read`, {
+      headers: {
+        "authorization": `Bearer ${token}`,
+      },
     });
     const notesFromAPI = response.data;
     await Promise.all(
@@ -83,12 +90,19 @@ const App = ({ signOut }) => {
     const { username } = await getCurrentUser();
     const { tokens } = await fetchAuthSession();
 
+    const payload = {
+      userId: username,
+      isAdmin: tokens.accessToken.payload["cognito:groups"] && tokens.accessToken.payload["cognito:groups"].includes("Admins") || false
+    };
+    const token = jwt.sign(payload, secret);
+
     const response = await axios.delete(`${apiUrl}/delete`, {
       data: {
-        id: id,
-        userId: username,
-        isAdmin: tokens.accessToken.payload["cognito:groups"] && tokens.accessToken.payload["cognito:groups"].includes("Admins")
+        id: id
       },
+      headers: {
+        "authorization": `Bearer ${token}`,
+      }
     });
 
     if (response.status === 200) {
